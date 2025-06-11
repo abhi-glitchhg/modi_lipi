@@ -1,0 +1,639 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Devanagari ⟷ Modi Script Converter</title>
+    <script src="https://cdn.jsdelivr.net/pyodide/v0.24.1/full/pyodide.js"></script>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 20px;
+            background: linear-gradient(135deg, #ff9a9e 0%, #fecfef 50%, #fecfef 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+        
+        .container {
+            background: rgba(255, 255, 255, 0.95);
+            padding: 30px;
+            border-radius: 20px;
+            box-shadow: 0 25px 50px rgba(0,0,0,0.15);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        
+        h1 {
+            text-align: center;
+            color: #4a5568;
+            margin-bottom: 10px;
+            font-size: 2.8em;
+            background: linear-gradient(45deg, #ff6b6b, #ee5a24);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        .subtitle {
+            text-align: center;
+            color: #718096;
+            margin-bottom: 30px;
+            font-size: 1.1em;
+        }
+        
+        .converter-section {
+            background: #f8fafc;
+            padding: 25px;
+            border-radius: 15px;
+            margin-bottom: 25px;
+            border-left: 5px solid #ff6b6b;
+            transition: all 0.3s ease;
+        }
+        
+        .converter-section:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        }
+        
+        .section-title {
+            font-size: 1.5em;
+            font-weight: 700;
+            color: #2d3748;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .section-title::before {
+            content: "📝";
+            font-size: 1.2em;
+        }
+        
+        .input-group {
+            margin-bottom: 20px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #4a5568;
+            font-size: 1.1em;
+        }
+        
+        textarea {
+            width: 100%;
+            padding: 15px;
+            border: 2px solid #e2e8f0;
+            border-radius: 12px;
+            font-size: 18px;
+            line-height: 1.6;
+            transition: all 0.3s ease;
+            box-sizing: border-box;
+            resize: vertical;
+            min-height: 120px;
+        }
+        
+        textarea:focus {
+            outline: none;
+            border-color: #ff6b6b;
+            box-shadow: 0 0 0 3px rgba(255, 107, 107, 0.1);
+            transform: translateY(-1px);
+        }
+        
+        .devanagari-input {
+            font-family: 'Noto Sans Devanagari', 'Mangal', 'Kokila', serif;
+            direction: ltr;
+        }
+        
+        .modi-input {
+            font-family: 'Noto Sans Modi', 'Marathi Typing', serif;
+            direction: ltr;
+        }
+        
+        .button-group {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+        
+        button {
+            background: linear-gradient(45deg, #ff6b6b, #ee5a24);
+            color: white;
+            padding: 12px 25px;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+            flex: 1;
+            min-width: 150px;
+        }
+        
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(255, 107, 107, 0.3);
+        }
+        
+        button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .clear-btn {
+            background: linear-gradient(45deg, #6c757d, #495057);
+        }
+        
+        .clear-btn:hover {
+            box-shadow: 0 10px 25px rgba(108, 117, 125, 0.3);
+        }
+        
+        .loading {
+            display: none;
+            text-align: center;
+            margin: 20px 0;
+            color: #ff6b6b;
+            font-weight: 600;
+        }
+        
+        .loading.show {
+            display: block;
+        }
+        
+        .spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #ff6b6b;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-right: 10px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .result-area {
+            background: #ffffff;
+            border: 2px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 15px;
+            min-height: 120px;
+            font-size: 18px;
+            line-height: 1.6;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+        
+        .status {
+            margin-top: 15px;
+            padding: 12px;
+            border-radius: 8px;
+            font-weight: 600;
+            display: none;
+        }
+        
+        .status.show {
+            display: block;
+            animation: fadeIn 0.5s ease-in;
+        }
+        
+        .status.success {
+            background: #c6f6d5;
+            color: #2f855a;
+            border: 1px solid #68d391;
+        }
+        
+        .status.error {
+            background: #fed7d7;
+            color: #c53030;
+            border: 1px solid #fc8181;
+        }
+        
+        .status.info {
+            background: #bee3f8;
+            color: #2b6cb0;
+            border: 1px solid #90cdf4;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .example-section {
+            background: #edf2f7;
+            padding: 20px;
+            border-radius: 12px;
+            margin-top: 20px;
+        }
+        
+        .example-title {
+            font-weight: 700;
+            color: #2d3748;
+            margin-bottom: 10px;
+        }
+        
+        .example-text {
+            background: white;
+            padding: 12px;
+            border-radius: 8px;
+            margin: 8px 0;
+            font-size: 16px;
+            border-left: 4px solid #ff6b6b;
+        }
+        
+        @media (max-width: 768px) {
+            .button-group {
+                flex-direction: column;
+            }
+            
+            button {
+                min-width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔄 Devanagari ⟷ Modi Script Converter</h1>
+        <p class="subtitle">Convert between Devanagari and Modi scripts seamlessly</p>
+        
+        <!-- Devanagari to Modi Section -->
+        <div class="converter-section">
+            <div class="section-title">Devanagari → Modi Script</div>
+            
+            <div class="input-group">
+                <label for="devanagariInput">Enter Devanagari Text:</label>
+                <textarea id="devanagariInput" class="devanagari-input" placeholder="मराठी भाषा सुंदर आहे."></textarea>
+            </div>
+            
+            <div class="button-group">
+                <button onclick="convertToModi()" id="convertToModiBtn">
+                    Convert to Modi
+                </button>
+                <button onclick="clearDevanagari()" class="clear-btn">
+                    Clear
+                </button>
+            </div>
+            
+            <div class="input-group">
+                <label for="modiOutput">Modi Script Output:</label>
+                <div id="modiOutput" class="result-area modi-input"></div>
+            </div>
+            
+            <div class="status" id="modiStatus"></div>
+        </div>
+        
+        <!-- Modi to Devanagari Section -->
+        <div class="converter-section">
+            <div class="section-title">Modi Script → Devanagari</div>
+            
+            <div class="input-group">
+                <label for="modiInput">Enter Modi Script Text:</label>
+                <textarea id="modiInput" class="modi-input" placeholder="Paste Modi script text here..."></textarea>
+            </div>
+            
+            <div class="button-group">
+                <button onclick="convertToDevanagari()" id="convertToDevanagariBtn">
+                    Convert to Devanagari
+                </button>
+                <button onclick="clearModi()" class="clear-btn">
+                    Clear
+                </button>
+            </div>
+            
+            <div class="input-group">
+                <label for="devanagariOutput">Devanagari Output:</label>
+                <div id="devanagariOutput" class="result-area devanagari-input"></div>
+            </div>
+            
+            <div class="status" id="devanagariStatus"></div>
+        </div>
+        
+        <div class="loading" id="loading">
+            <div class="spinner"></div>
+            Processing conversion...
+        </div>
+        
+        <!-- Example Section -->
+        <div class="example-section">
+            <div class="example-title">📚 Example Usage:</div>
+            <div class="example-text devanagari-input">
+                <strong>Devanagari:</strong> मराठी भाषा सुंदर आहे.
+            </div>
+            <div class="example-text modi-input">
+                <strong>Modi:</strong> <span id="exampleModi"></span>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let pyodide;
+        let isInitialized = false;
+
+        // Initialize Pyodide when page loads
+        async function initializePyodide() {
+            try {
+                console.log("Loading Pyodide...");
+                
+                // Try different CDN options
+                let pyodideOptions = [
+                    { indexURL: "https://cdn.jsdelivr.net/pyodide/v0.24.1/full/" },
+                    { indexURL: "https://cdn.jsdelivr.net/pyodide/v0.23.4/full/" },
+                    {} // Default
+                ];
+                
+                for (let i = 0; i < pyodideOptions.length; i++) {
+                    try {
+                        console.log(`Trying CDN option ${i + 1}...`);
+                        pyodide = await loadPyodide(pyodideOptions[i]);
+                        break;
+                    } catch (e) {
+                        console.log(`CDN option ${i + 1} failed:`, e);
+                        if (i === pyodideOptions.length - 1) throw e;
+                    }
+                }
+                
+                // Set up the conversion maps and functions
+                pyodide.runPython(`
+# Devanagari to Modi conversion map
+devanagari_to_modi_map = {
+    "अ": "\\U00011600", "आ": "\\U00011601", "इ": "\\U00011602", "ई": "\\U00011603",
+    "उ": "\\U00011604", "ऊ": "\\U00011605", "ऋ": "\\U00011606", "ॠ": "\\U00011607",
+    "ऌ": "\\U00011608", "ॡ": "\\U00011609", "ए": "\\U00011610", "ऐ": "\\U00011611",
+    "ओ": "\\U00011612", "औ": "\\U00011613",
+    
+    "क": "\\U0001160E", "ख": "\\U0001160F", "ग": "\\U00011610", "घ": "\\U00011611",
+    "ङ": "\\U00011612", "च": "\\U00011613", "छ": "\\U00011614", "ज": "\\U00011615",
+    "झ": "\\U00011616", "ञ": "\\U00011617", "ट": "\\U00011618", "ठ": "\\U00011619",
+    "ड": "\\U0001161A", "ढ": "\\U0001161B", "ण": "\\U0001161C", "त": "\\U0001161D",
+    "थ": "\\U0001161E", "द": "\\U0001161F", "ध": "\\U00011620", "न": "\\U00011621",
+    "प": "\\U00011622", "फ": "\\U00011623", "ब": "\\U00011624", "भ": "\\U00011625",
+    "म": "\\U00011626", "य": "\\U00011627", "र": "\\U00011628", "ल": "\\U00011629",
+    "व": "\\U0001162A", "श": "\\U0001162B", "ष": "\\U0001162C", "स": "\\U0001162D",
+    "ह": "\\U0001162E", "ळ": "\\U0001162F",
+    
+    "ा": "\\U00011630", "ि": "\\U00011631", "ी": "\\U00011632", "ु": "\\U00011633",
+    "ू": "\\U00011634", "ृ": "\\U00011635", "ॄ": "\\U00011636", "ॢ": "\\U00011637",
+    "ॣ": "\\U00011637", "े": "\\U00011639", "ै": "\\U0001163A", "ो": "\\U0001163B",
+    "ौ": "\\U0001163C", "ं": "\\U0001163D", "ः": "\\U0001163E", "्": "\\U0001163F",
+    " ॕ": "\\U00011640",
+    
+    "०": "\\U00011650", "१": "\\U00011651", "२": "\\U00011652", "३": "\\U00011653",
+    "४": "\\U00011654", "५": "\\U00011655", "६": "\\U00011656", "७": "\\U00011657",
+    "८": "\\U00011658", "९": "\\U00011659"
+}
+
+# Create reverse mapping
+modi_to_devanagari_map = {v: k for k, v in devanagari_to_modi_map.items()}
+
+def devanagari_to_modi(text):
+    result = ""
+    for char in text:
+        result += devanagari_to_modi_map.get(char, char)
+    return result
+
+def modi_to_devanagari(text):
+    result = ""
+    for char in text:
+        result += modi_to_devanagari_map.get(char, char)
+    return result
+
+print("Converter functions loaded successfully!")
+                `);
+                
+                isInitialized = true;
+                console.log("Pyodide initialized successfully");
+                
+                // Show example conversion
+                showExampleConversion();
+                
+                showStatus("info", "✅ Converter ready! You can now convert between Devanagari and Modi scripts.");
+                
+            } catch (error) {
+                console.error("Failed to initialize Pyodide:", error);
+                
+                // Show fallback message with JavaScript-based converter
+                showStatus("error", "❌ Python environment failed to load. Using fallback JavaScript converter...");
+                initializeJavaScriptFallback();
+            }
+        }
+
+        // JavaScript fallback converter
+        function initializeJavaScriptFallback() {
+            // Define the conversion maps in JavaScript
+            window.devanagariToModiMap = {
+                "अ": "\u{11600}", "आ": "\u{11601}", "इ": "\u{11602}", "ई": "\u{11603}",
+                "उ": "\u{11604}", "ऊ": "\u{11605}", "ऋ": "\u{11606}", "ॠ": "\u{11607}",
+                "ऌ": "\u{11608}", "ॡ": "\u{11609}", "ए": "\u{1161A}", "ऐ": "\u{1161B}",
+                "ओ": "\u{1161C}", "औ": "\u{1161D}",
+                
+                "क": "\u{1160E}", "ख": "\u{1160F}", "ग": "\u{11610}", "घ": "\u{11611}",
+                "ङ": "\u{11612}", "च": "\u{11613}", "छ": "\u{11614}", "ज": "\u{11615}",
+                "झ": "\u{11616}", "ञ": "\u{11617}", "ट": "\u{11618}", "ठ": "\u{11619}",
+                "ड": "\u{1161A}", "ढ": "\u{1161B}", "ण": "\u{1161C}", "त": "\u{1161D}",
+                "थ": "\u{1161E}", "द": "\u{1161F}", "ध": "\u{11620}", "न": "\u{11621}",
+                "प": "\u{11622}", "फ": "\u{11623}", "ब": "\u{11624}", "भ": "\u{11625}",
+                "म": "\u{11626}", "य": "\u{11627}", "र": "\u{11628}", "ल": "\u{11629}",
+                "व": "\u{1162A}", "श": "\u{1162B}", "ष": "\u{1162C}", "स": "\u{1162D}",
+                "ह": "\u{1162E}", "ळ": "\u{1162F}",
+                
+                "ा": "\u{11630}", "ि": "\u{11631}", "ी": "\u{11632}", "ु": "\u{11633}",
+                "ू": "\u{11634}", "ृ": "\u{11635}", "ॄ": "\u{11636}", "ॢ": "\u{11637}",
+                "ॣ": "\u{11637}", "े": "\u{11639}", "ै": "\u{1163A}", "ो": "\u{1163B}",
+                "ौ": "\u{1163C}", "ं": "\u{1163D}", "ः": "\u{1163E}", "्": "\u{1163F}",
+                " ॕ": "\u{11640}",
+                
+                "०": "\u{11650}", "१": "\u{11651}", "२": "\u{11652}", "३": "\u{11653}",
+                "४": "\u{11654}", "५": "\u{11655}", "६": "\u{11656}", "७": "\u{11657}",
+                "८": "\u{11658}", "९": "\u{11659}"
+            };
+            
+            // Create reverse mapping
+            window.modiToDevanagariMap = {};
+            for (let [dev, modi] of Object.entries(window.devanagariToModiMap)) {
+                window.modiToDevanagariMap[modi] = dev;
+            }
+            
+            // Set fallback flag
+            window.useFallback = true;
+            
+            // Show example
+            const exampleText = "मराठी भाषा सुंदर आहे.";
+            const modiExample = devanagariToModiJS(exampleText);
+            document.getElementById('exampleModi').textContent = modiExample;
+            
+            showStatus("info", "✅ JavaScript fallback converter ready!");
+        }
+
+        // JavaScript conversion functions
+        function devanagariToModiJS(text) {
+            let result = "";
+            for (let char of text) {
+                result += window.devanagariToModiMap[char] || char;
+            }
+            return result;
+        }
+
+        function modiToDevanagariJS(text) {
+            let result = "";
+            for (let char of text) {
+                result += window.modiToDevanagariMap[char] || char;
+            }
+            return result;
+        }
+
+        async function convertToModi() {
+            const input = document.getElementById('devanagariInput').value.trim();
+            
+            if (!input) {
+                showStatus("error", "Please enter some Devanagari text to convert.", "modiStatus");
+                return;
+            }
+
+            showLoading(true);
+            
+            try {
+                let result;
+                
+                if (window.useFallback) {
+                    // Use JavaScript fallback
+                    result = devanagariToModiJS(input);
+                } else if (isInitialized) {
+                    // Use Pyodide
+                    pyodide.globals.set("input_text", input);
+                    result = pyodide.runPython(`devanagari_to_modi(input_text)`);
+                } else {
+                    showStatus("error", "Converter is still loading. Please wait a moment.", "modiStatus");
+                    return;
+                }
+                
+                document.getElementById('modiOutput').textContent = result;
+                showStatus("success", `✅ Successfully converted ${input.length} characters to Modi script!`, "modiStatus");
+                
+            } catch (error) {
+                console.error("Conversion error:", error);
+                showStatus("error", `❌ Conversion failed: ${error.message}`, "modiStatus");
+            } finally {
+                showLoading(false);
+            }
+        }
+
+        async function convertToDevanagari() {
+            const input = document.getElementById('modiInput').value.trim();
+            
+            if (!input) {
+                showStatus("error", "Please enter some Modi script text to convert.", "devanagariStatus");
+                return;
+            }
+
+            showLoading(true);
+            
+            try {
+                let result;
+                
+                if (window.useFallback) {
+                    // Use JavaScript fallback
+                    result = modiToDevanagariJS(input);
+                } else if (isInitialized) {
+                    // Use Pyodide
+                    pyodide.globals.set("input_text", input);
+                    result = pyodide.runPython(`modi_to_devanagari(input_text)`);
+                } else {
+                    showStatus("error", "Converter is still loading. Please wait a moment.", "devanagariStatus");
+                    return;
+                }
+                
+                document.getElementById('devanagariOutput').textContent = result;
+                showStatus("success", `✅ Successfully converted ${input.length} characters to Devanagari!`, "devanagariStatus");
+                
+            } catch (error) {
+                console.error("Conversion error:", error);
+                showStatus("error", `❌ Conversion failed: ${error.message}`, "devanagariStatus");
+            } finally {
+                showLoading(false);
+            }
+        }
+
+        function clearDevanagari() {
+            document.getElementById('devanagariInput').value = '';
+            document.getElementById('modiOutput').textContent = '';
+            hideStatus("modiStatus");
+        }
+
+        function clearModi() {
+            document.getElementById('modiInput').value = '';
+            document.getElementById('devanagariOutput').textContent = '';
+            hideStatus("devanagariStatus");
+        }
+
+        function showExampleConversion() {
+            const exampleText = "मराठी भाषा सुंदर आहे.";
+            let modiExample;
+            
+            if (window.useFallback) {
+                modiExample = devanagariToModiJS(exampleText);
+            } else if (isInitialized) {
+                pyodide.globals.set("example_text", exampleText);
+                modiExample = pyodide.runPython(`devanagari_to_modi(example_text)`);
+            } else {
+                modiExample = "Loading...";
+            }
+            
+            document.getElementById('exampleModi').textContent = modiExample;
+        }
+
+        function showLoading(show) {
+            const loading = document.getElementById('loading');
+            const btns = document.querySelectorAll('button');
+            
+            if (show) {
+                loading.classList.add('show');
+                btns.forEach(btn => btn.disabled = true);
+            } else {
+                loading.classList.remove('show');
+                btns.forEach(btn => btn.disabled = false);
+            }
+        }
+
+        function showStatus(type, message, elementId = null) {
+            const statusElements = elementId ? [document.getElementById(elementId)] : document.querySelectorAll('.status');
+            
+            statusElements.forEach(statusDiv => {
+                if (statusDiv) {
+                    statusDiv.textContent = message;
+                    statusDiv.className = `status show ${type}`;
+                }
+            });
+        }
+
+        function hideStatus(elementId) {
+            const statusDiv = document.getElementById(elementId);
+            if (statusDiv) {
+                statusDiv.classList.remove('show');
+            }
+        }
+
+        // Add placeholder text to Modi input
+        document.getElementById('devanagariInput').value = "मराठी भाषा सुंदर आहे.";
+
+        // Initialize on page load
+        window.addEventListener('load', function() {
+            showStatus("info", "🔄 Initializing script converter... This may take 10-30 seconds on first load.");
+            initializePyodide();
+        });
+    </script>
+</body>
+</html>
