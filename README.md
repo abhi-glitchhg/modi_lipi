@@ -2,7 +2,7 @@
 
  ## https://abhi-glitchhg.github.io/modi_lipi/
 
- I came across one reddit post which mentioned that Modi script has unicode characters. I got thinking and i couldnt find any tool that converts devanagari to modi script. 
+ I came across one reddit post which mentioned that Modi script has unicode characters. I got thinking and ~i couldnt find any tool that converts devanagari to modi script~ (update: after more search found this https://modinikam.com/). 
 
  There was one tool called [AksharkMukh](https://www.aksharamukha.com/input/Modi), which could be a great (and maybe superior) tool, but i feel this webpage is more layman friendly. 
 
